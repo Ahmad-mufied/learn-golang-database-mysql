@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -120,7 +121,7 @@ func TestSqlInjection(t *testing.T) {
 	} else {
 		fmt.Println("Gagal Login")
 	}
-	
+
 }
 
 func TestSqlInjectionSafe(t *testing.T) {
@@ -180,7 +181,7 @@ func TestAutoIncrement(t *testing.T) {
 	comment := "Komen lah"
 
 	script := "INSERT INTO comments(email, comment) VALUES(?, ?)"
-	result , err := db.ExecContext(ctx, script, email, comment)
+	result, err := db.ExecContext(ctx, script, email, comment)
 	if err != nil {
 		panic(err)
 	}
@@ -191,4 +192,34 @@ func TestAutoIncrement(t *testing.T) {
 	}
 
 	fmt.Println("Success insert new comment with id", inserID)
+}
+
+func TestPreapareStatement(t *testing.T) {
+	db := GetConnection()
+	defer db.Close()
+
+	ctx := context.Background()
+	script := "INSERT INTO comments(email, comment) VALUES(?,?)"
+	statement, err := db.PrepareContext(ctx, script)
+	if err != nil {
+		panic(err)
+	}
+	defer statement.Close()
+
+	for i := 0; i < 20; i++ {
+		email := "ahmad" + strconv.Itoa(i) + "@gmail.com"
+		comment := "Komentar ke " + strconv.Itoa(i)
+
+		result, err := statement.ExecContext(ctx, email, comment)
+		if err != nil {
+			panic(err)
+		}
+
+		id, err := result.LastInsertId()
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Println("Comment Id ", id)
+	}
 }
